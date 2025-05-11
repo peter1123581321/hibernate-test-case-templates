@@ -34,8 +34,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @DomainModel(
         annotatedClasses = {
                 // Add your entities here.
-                Person.class,
-                Document.class
+                SecondaryTableEntityBase.class,
+                SecondaryTableEntitySub.class
         }
 )
 @ServiceRegistry(
@@ -55,23 +55,31 @@ class ORMUnitTestCase {
     void hhh123Test(SessionFactoryScope scope) {
 
         scope.inTransaction(session -> {
-            Person person = new Person();
-            person.name = "Peter";
-            session.persist(person);
-        });
-
-        scope.inTransaction(session -> session.createMutationQuery("insert into Document(name,owner) select concat(p.name,'s document'), p from Person p").executeUpdate());
-
-        scope.inTransaction(session -> {
-            Person person = session.createQuery("select p from Person p", Person.class).getSingleResult();
-            assertNotNull(person);
-            assertEquals("Peter", person.name);
+            SecondaryTableEntitySub entitySub = new SecondaryTableEntitySub();
+            entitySub.setB(111L);
+            entitySub.setC(222L);
+            session.persist(entitySub);
         });
 
         scope.inTransaction(session -> {
-            Document document = session.createQuery("select d from Document d", Document.class).getSingleResult();
-            assertNotNull(document);
-            assertEquals("Peters document", document.name);
+            SecondaryTableEntitySub entitySub = session.createQuery("select s from SecondaryTableEntitySub s", SecondaryTableEntitySub.class).getSingleResult();
+            assertNotNull(entitySub);
+            assertEquals(111L, entitySub.getB());
+            assertEquals(222L, entitySub.getC());
+        });
+
+        scope.inTransaction(session -> {
+            session.createMutationQuery("update SecondaryTableEntitySub e set e.b=:b, e.c=:c")
+                    .setParameter("b", 333L)
+                    .setParameter("c", 444L)
+                    .executeUpdate();
+        });
+
+        scope.inTransaction(session -> {
+            SecondaryTableEntitySub entitySub = session.createQuery("select s from SecondaryTableEntitySub s", SecondaryTableEntitySub.class).getSingleResult();
+            assertNotNull(entitySub);
+            assertEquals(333L, entitySub.getB());
+            assertEquals(444L, entitySub.getC());
         });
     }
 }
