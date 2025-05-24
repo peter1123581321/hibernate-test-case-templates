@@ -45,19 +45,16 @@ import static org.junit.jupiter.api.Assertions.*;
 @ServiceRegistry(
         settings = {
                 @Setting(name = AvailableSettings.SHOW_SQL, value = "true"),
-                @Setting(name = AvailableSettings.FORMAT_SQL, value = "true")
-              /*
-                ,@Setting(name = AvailableSettings.CUSTOM_ENTITY_DIRTINESS_STRATEGY,
+                @Setting(name = AvailableSettings.FORMAT_SQL, value = "true"),
+                @Setting(name = AvailableSettings.CUSTOM_ENTITY_DIRTINESS_STRATEGY,
                         value = "org.hibernate.bugs.HHH11866Test$EntityDirtinessStrategy")
-
-               */
         }
 )
 @SessionFactory
 class HHH11866Test {
 
     @Test
-    void hhh11866Test(SessionFactoryScope scope) {
+    void hhh11866Test_bytecode(SessionFactoryScope scope) {
 
         // prepare document
         scope.inTransaction(session -> {
@@ -76,9 +73,47 @@ class HHH11866Test {
             assertNotNull(document);
             assertEquals("title", document.getName());
 
-            // document.setName("test");
+            assertFalse(session.isDirty());
+
+            document.setName("test");
 
             assertTrue(session.isDirty());
+
+            session.flush();
+
+            assertFalse(session.isDirty());
+        });
+    }
+
+    @Test
+    void hhh11866Test_customStrategy(SessionFactoryScope scope) {
+
+        // prepare document
+        scope.inTransaction(session -> {
+
+            MutationQuery nativeMutationQuery = session.createNativeMutationQuery(
+                    "insert into Document (id,name) values (1,'title')");
+            nativeMutationQuery.executeUpdate();
+
+        });
+
+        // assert document
+        scope.inTransaction(session -> {
+
+            final Document document = session.createQuery("select d from Document d", Document.class)
+                    .getSingleResult();
+            assertNotNull(document);
+            assertEquals("title", document.getName());
+
+            assertFalse(session.isDirty());
+
+            document.setName("test");
+
+            assertTrue(session.isDirty());
+
+            session.flush();
+
+            assertFalse(session.isDirty());
         });
     }
 
@@ -122,18 +157,22 @@ class HHH11866Test {
 
         @Override
         public void resetDirty(Object entity, EntityPersister persister, Session session) {
-            cast(entity).clearDirtyProperties();
+            if (entity instanceof DirtyAware) {
+                cast(entity).clearDirtyProperties();
+            }
         }
 
         @Override
         public void findDirty(Object entity, EntityPersister persister, Session session, DirtyCheckContext dirtyCheckContext) {
-            final DirtyAware dirtyAware = cast(entity);
-            dirtyCheckContext.doDirtyChecking(
-                    attributeInformation -> {
-                        String propertyName = attributeInformation.getName();
-                        return dirtyAware.getDirtyProperties().contains(propertyName);
-                    }
-            );
+            if (entity instanceof DirtyAware) {
+                final DirtyAware dirtyAware = cast(entity);
+                dirtyCheckContext.doDirtyChecking(
+                        attributeInformation -> {
+                            String propertyName = attributeInformation.getName();
+                            return dirtyAware.getDirtyProperties().contains(propertyName);
+                        }
+                );
+            }
         }
 
         private DirtyAware cast(Object entity) {
