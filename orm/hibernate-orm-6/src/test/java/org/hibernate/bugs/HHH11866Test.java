@@ -39,16 +39,18 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-
 @DomainModel(
-        annotatedClasses = {HHH11866Test.Document.class}
+        annotatedClasses = {HHH11866Test.Document.class, Document2.class}
 )
 @ServiceRegistry(
         settings = {
                 @Setting(name = AvailableSettings.SHOW_SQL, value = "true"),
-                @Setting(name = AvailableSettings.FORMAT_SQL, value = "true"),
-                @Setting(name = AvailableSettings.CUSTOM_ENTITY_DIRTINESS_STRATEGY,
+                @Setting(name = AvailableSettings.FORMAT_SQL, value = "true")
+              /*
+                ,@Setting(name = AvailableSettings.CUSTOM_ENTITY_DIRTINESS_STRATEGY,
                         value = "org.hibernate.bugs.HHH11866Test$EntityDirtinessStrategy")
+
+               */
         }
 )
 @SessionFactory
@@ -61,7 +63,7 @@ class HHH11866Test {
         scope.inTransaction(session -> {
 
             MutationQuery nativeMutationQuery = session.createNativeMutationQuery(
-                    "insert into Document (id,name) values (1,'title')");
+                    "insert into Document2 (id,name) values (1,'title')");
             nativeMutationQuery.executeUpdate();
 
         });
@@ -69,10 +71,12 @@ class HHH11866Test {
         // assert document
         scope.inTransaction(session -> {
 
-            final Document document = session.createQuery("select d from Document d", Document.class)
+            final Document2 document = session.createQuery("select d from Document2 d", Document2.class)
                     .getSingleResult();
             assertNotNull(document);
             assertEquals("title", document.getName());
+
+            // document.setName("test");
 
             assertTrue(session.isDirty());
         });

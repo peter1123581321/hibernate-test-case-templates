@@ -89,14 +89,11 @@
 				<executions>
 					<execution>
 						<configuration>
-							<base>${project.build.testOutputDirectory}</base>
-							<dir>${project.build.testOutputDirectory}</dir>
-							<enableAssociationManagement>false</enableAssociationManagement>
-							<enableDirtyTracking>false</enableDirtyTracking>
-							<enableExtendedEnhancement>false</enableExtendedEnhancement>
-							<enableLazyInitialization>false</enableLazyInitialization>
+							<enableAssociationManagement>true</enableAssociationManagement>
+							<enableDirtyTracking>true</enableDirtyTracking>
+							<enableExtendedEnhancement>true</enableExtendedEnhancement>
+							<enableLazyInitialization>true</enableLazyInitialization>
 						</configuration>
-						<phase>test-compile</phase>
 						<goals>
 							<goal>enhance</goal>
 						</goals>
