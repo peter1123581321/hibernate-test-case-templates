@@ -92,30 +92,13 @@ class HHH18898Test {
     @Entity(name = "MyEntity")
     public static class MyEntity {
 
-        //        @Id
-        private long id;
-
-        private EmbeddableDatum datum;
+        @Id
+        @Column(name = "id")
+        long id;
 
         @Embedded
         @AttributeOverride(name = "value", column = @Column(name = "DATUM"))
-        public EmbeddableDatum getDatum() {
-            return datum;
-        }
-
-        public void setDatum(EmbeddableDatum datum) {
-            this.datum = datum;
-        }
-
-        @Id
-        @Column(name = "id")
-        public long getId() {
-            return id;
-        }
-
-        public void setId(long id) {
-            this.id = id;
-        }
+        EmbeddableDatum datum;
     }
 
 
