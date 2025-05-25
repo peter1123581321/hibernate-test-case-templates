@@ -77,16 +77,8 @@ class HHH18898Test {
 
     @Embeddable
     public static class EmbeddableDatum {
-        private LocalDate value;
-
-        //        @JavaType(MyDateJavaType.class)
-        public LocalDate getValue() {
-            return value;
-        }
-
-        public void setValue(LocalDate datum) {
-            this.value = datum;
-        }
+        
+        LocalDate value;
     }
 
     @Entity(name = "MyEntity")
