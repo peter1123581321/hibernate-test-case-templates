@@ -47,37 +47,50 @@ import java.time.LocalDate;
 @SessionFactory
 class HHH18898Test {
 
-    // Correct HQL, works
+    // Correct HQL, works, raw value (param right)
     @Test
     void hhh18898Test_1(SessionFactoryScope scope) {
-        run(scope, "select z from MyEntity z where datum.value=:datum");
+        LocalDate datum = LocalDate.now();
+        run(scope, "select z from MyEntity z where datum.value=:datum", datum);
     }
 
-    // Wrong syntax #1: With Hibernate 6.5.2, gives a NullPointerException
+    // Correct HQL, works, raw value (param left)
     @Test
     void hhh18898Test_2(SessionFactoryScope scope) {
-        run(scope, "select z from MyEntity z where datum=:datum");
+        LocalDate datum = LocalDate.now();
+        run(scope, "select z from MyEntity z where :datum=datum.value", datum);
     }
 
-    // Wrong syntax the other way round: With Hibernate 6.5.2, works fine (but why?)
+    // Correct HQL, works, embeddable value (param right)
     @Test
     void hhh18898Test_3(SessionFactoryScope scope) {
-        run(scope, "select z from MyEntity z where :datum=datum");
+        EmbeddableDatum datum = new EmbeddableDatum();
+        datum.value = LocalDate.now();
+        run(scope, "select z from MyEntity z where datum=:datum", datum);
     }
 
-    private void run(SessionFactoryScope scope, String hql) {
+    // Correct HQL, works, embeddable value (param left)
+    @Test
+    void hhh18898Test_4(SessionFactoryScope scope) {
+        EmbeddableDatum datum = new EmbeddableDatum();
+        datum.value = LocalDate.now();
+        run(scope, "select z from MyEntity z where :datum=datum", datum);
+    }
+
+    private void run(SessionFactoryScope scope, String hql, Object param) {
 
         scope.inTransaction(session -> {
             QueryImplementor<MyEntity> query = session.createQuery(hql, MyEntity.class);
-            query.setParameter("datum", new MyDate(LocalDate.now()), MyDateJavaType.TYPE);
-//            query.setParameter("datum", LocalDate.now(), DateJdbcType.class);
+//            query.setParameter("datum", new MyDate(LocalDate.now()), MyDateJavaType.TYPE);
+//            query.setParameter("datum", LocalDate.now());
+            query.setParameter("datum", param);
             query.getResultList();
         });
     }
 
     @Embeddable
     public static class EmbeddableDatum {
-        
+
         LocalDate value;
     }
 
