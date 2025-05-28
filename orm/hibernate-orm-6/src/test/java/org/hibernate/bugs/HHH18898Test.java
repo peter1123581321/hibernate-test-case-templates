@@ -16,8 +16,8 @@
 package org.hibernate.bugs;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JavaType;
 import org.hibernate.cfg.AvailableSettings;
-import org.hibernate.query.QueryArgumentException;
 import org.hibernate.query.spi.QueryImplementor;
 import org.hibernate.testing.orm.junit.*;
 import org.hibernate.type.AbstractSingleColumnStandardBasicType;
@@ -32,8 +32,6 @@ import org.hibernate.type.descriptor.jdbc.JdbcTypeIndicators;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 @DomainModel(
@@ -53,69 +51,32 @@ class HHH18898Test {
     // Correct HQL, works, raw value (param right)
     @Test
     void hhh18898Test_1(SessionFactoryScope scope) {
-        LocalDate datum = LocalDate.now();
-        run(scope, "select z from MyEntity z where datum.value=:datum", datum);
+        run(scope, "select z from MyEntity z where datum.value=:datum");
     }
 
     // Correct HQL, works, raw value (param left)
     @Test
     void hhh18898Test_2(SessionFactoryScope scope) {
-        LocalDate datum = LocalDate.now();
-        run(scope, "select z from MyEntity z where :datum=datum.value", datum);
+        run(scope, "select z from MyEntity z where :datum=datum.value");
     }
 
     // Correct HQL, works, embeddable value (param right)
     @Test
     void hhh18898Test_3(SessionFactoryScope scope) {
-        EmbeddableDatum datum = new EmbeddableDatum();
-        datum.value = LocalDate.now();
-        run(scope, "select z from MyEntity z where datum=:datum", datum);
+        run(scope, "select z from MyEntity z where datum=:datum");
     }
 
     // Correct HQL, works, embeddable value (param left)
     @Test
     void hhh18898Test_4(SessionFactoryScope scope) {
-        EmbeddableDatum datum = new EmbeddableDatum();
-        datum.value = LocalDate.now();
-        run(scope, "select z from MyEntity z where :datum=datum", datum);
+        run(scope, "select z from MyEntity z where :datum=datum");
     }
 
-    // Incorrect HQL (expected: raw, given: embeddable), throws exception, embeddable value (param right)
-    @Test
-    void hhh18898Test_5(SessionFactoryScope scope) {
-        EmbeddableDatum datum = new EmbeddableDatum();
-        datum.value = LocalDate.now();
-        assertThrows(QueryArgumentException.class, () -> run(scope, "select z from MyEntity z where datum.value=:datum", datum));
-    }
-
-    // Incorrect HQL (expected: raw, given: embeddable), throws exception, embeddable value (param left)
-    @Test
-    void hhh18898Test_6(SessionFactoryScope scope) {
-        EmbeddableDatum datum = new EmbeddableDatum();
-        datum.value = LocalDate.now();
-        assertThrows(QueryArgumentException.class, () -> run(scope, "select z from MyEntity z where :datum=datum.value", datum));
-    }
-
-    // Incorrect HQL (expected: embeddable, given: raw), throws exception, embeddable value (param right)
-    @Test
-    void hhh18898Test_7(SessionFactoryScope scope) {
-        LocalDate datum = LocalDate.now();
-        assertThrows(QueryArgumentException.class, () -> run(scope, "select z from MyEntity z where datum=:datum", datum));
-    }
-
-    // Incorrect HQL (expected: embeddable, given: raw), throws exception, embeddable value (param left)
-    @Test
-    void hhh18898Test_8(SessionFactoryScope scope) {
-        LocalDate datum = LocalDate.now();
-        assertThrows(QueryArgumentException.class, () -> run(scope, "select z from MyEntity z where :datum=datum", datum));
-    }
-
-    private void run(SessionFactoryScope scope, String hql, Object param) {
+    private void run(SessionFactoryScope scope, String hql) {
 
         scope.inTransaction(session -> {
             QueryImplementor<MyEntity> query = session.createQuery(hql, MyEntity.class);
             query.setParameter("datum", new MyDate(LocalDate.now()), MyDateJavaType.TYPE);
-//            query.setParameter("datum", param);
             query.getResultList();
         });
     }
@@ -123,6 +84,7 @@ class HHH18898Test {
     @Embeddable
     public static class EmbeddableDatum {
 
+        @JavaType(MyDateJavaType.class)
         LocalDate value;
     }
 
