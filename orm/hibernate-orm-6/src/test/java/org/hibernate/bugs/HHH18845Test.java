@@ -22,8 +22,9 @@ import jakarta.persistence.IdClass;
 import org.hibernate.annotations.IdGeneratorType;
 import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
+import org.hibernate.generator.BeforeExecutionGenerator;
 import org.hibernate.generator.EventType;
-import org.hibernate.id.IdentifierGenerator;
+
 import org.hibernate.testing.orm.junit.*;
 import org.junit.jupiter.api.Test;
 
@@ -40,7 +41,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DomainModel(
         annotatedClasses = {
-                HHH18845Test.Document.class, HHH18845Test.Person.class
+                HHH18845Test.Document.class,
+                HHH18845Test.Person.class,
+                HHH18845Test.DocumentEntityId.class,
+                HHH18845Test.DocumentIdentifyGenerator.class,
+                HHH18845Test.DocumentIdGenerator.class,
         }
 )
 @ServiceRegistry(
@@ -127,7 +132,18 @@ class HHH18845Test {
     public @interface DocumentIdGenerator {
     }
 
-    public record DocumentEntityId(long id, long version) {
+    public static class DocumentEntityId {
+        private long id;
+
+        private long version;
+
+        public long getId() {
+            return id;
+        }
+
+        public void setId(long id) {
+            this.id = id;
+        }
     }
 
     @IdClass(DocumentEntityId.class)
@@ -150,14 +166,18 @@ class HHH18845Test {
         Long id;
     }
 
-    public static class DocumentIdentifyGenerator implements IdentifierGenerator {
+    public static class DocumentIdentifyGenerator implements BeforeExecutionGenerator {
 
         @Override
-        public Object generate(SharedSessionContractImplementor session, Object object) {
-            if (object instanceof Document document) {
-                return Optional.ofNullable(document.id).orElse(456L);
-            } else if (object instanceof Person person) {
-                return Optional.ofNullable(person.id).orElse(456L);
+        public Object generate(
+                SharedSessionContractImplementor session,
+                Object object,
+                Object currentValue,
+                EventType eventType) {
+            if (object instanceof Document) {
+                return Optional.ofNullable(((Document)object).id).orElse(456L);
+            } else if (object instanceof Person) {
+                return Optional.ofNullable(((Person)object).id).orElse(456L);
             }
             return null;
         }
