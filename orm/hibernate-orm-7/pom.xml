@@ -3,15 +3,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.hibernate.testcasetemplate</groupId>
-    <artifactId>test-case-template-hibernate-orm-6</artifactId>
+    <artifactId>test-case-template-hibernate-orm-7</artifactId>
     <version>1.0.0.Final</version>
-    <name>Hibernate ORM 6 Test Case Template</name>
+    <name>Hibernate ORM 7 Test Case Template</name>
 
     <properties>
         <version.com.h2database>2.3.232</version.com.h2database>
         <version.junit-jupiter>5.11.4</version.junit-jupiter>
-        <version.org.hibernate.orm>6.6.13.Final</version.org.hibernate.orm>
-        <!--        <version.org.hibernate.orm>6.6.5.Final</version.org.hibernate.orm>-->
+        <version.org.hibernate.orm>7.1.6.Final</version.org.hibernate.orm>
         <version.org.assertj.assertj-core>3.27.3</version.org.assertj.assertj-core>
     </properties>
 
@@ -76,20 +75,6 @@
             <version>${version.org.assertj.assertj-core}</version>
             <scope>test</scope>
         </dependency>
-
-        <!-- https://mvnrepository.com/artifact/tools.jackson.core/jackson-core -->
-        <!--        <dependency>-->
-        <!--            <groupId>tools.jackson.core</groupId>-->
-        <!--            <artifactId>jackson-core</artifactId>-->
-        <!--            <version>3.0.2</version>-->
-        <!--        </dependency>-->
-        <!-- https://mvnrepository.com/artifact/tools.jackson.core/jackson-databind -->
-        <!--        <dependency>-->
-        <!--            <groupId>tools.jackson.core</groupId>-->
-        <!--            <artifactId>jackson-databind</artifactId>-->
-        <!--            <version>3.0.2</version>-->
-        <!--        </dependency>-->
-        <!-- https://mvnrepository.com/artifact/org.eclipse/yasson -->
         <dependency>
             <groupId>org.eclipse</groupId>
             <artifactId>yasson</artifactId>
@@ -109,27 +94,27 @@
                     <release>11</release>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.hibernate.orm.tooling</groupId>
-                <artifactId>hibernate-enhance-maven-plugin</artifactId>
-                <version>${version.org.hibernate.orm}</version>
-                <executions>
-                    <execution>
-                        <configuration>
-                            <base>${project.build.testOutputDirectory}</base>
-                            <dir>${project.build.testOutputDirectory}</dir>
-                            <enableAssociationManagement>false</enableAssociationManagement>
-                            <enableDirtyTracking>false</enableDirtyTracking>
-                            <enableExtendedEnhancement>false</enableExtendedEnhancement>
-                            <enableLazyInitialization>false</enableLazyInitialization>
-                        </configuration>
-                        <phase>test-compile</phase>
-                        <goals>
-                            <goal>enhance</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+            <!--            <plugin>-->
+            <!--                <groupId>org.hibernate.orm.tooling</groupId>-->
+            <!--                <artifactId>hibernate-enhance-maven-plugin</artifactId>-->
+            <!--                <version>${version.org.hibernate.orm}</version>-->
+            <!--                <executions>-->
+            <!--                    <execution>-->
+            <!--                        <configuration>-->
+            <!--                            <base>${project.build.testOutputDirectory}</base>-->
+            <!--                            <dir>${project.build.testOutputDirectory}</dir>-->
+            <!--                            <enableAssociationManagement>false</enableAssociationManagement>-->
+            <!--                            <enableDirtyTracking>false</enableDirtyTracking>-->
+            <!--                            <enableExtendedEnhancement>false</enableExtendedEnhancement>-->
+            <!--                            <enableLazyInitialization>false</enableLazyInitialization>-->
+            <!--                        </configuration>-->
+            <!--                        <phase>test-compile</phase>-->
+            <!--                        <goals>-->
+            <!--                            <goal>enhance</goal>-->
+            <!--                        </goals>-->
+            <!--                    </execution>-->
+            <!--                </executions>-->
+            <!--            </plugin>-->
         </plugins>
     </build>
 </project>
