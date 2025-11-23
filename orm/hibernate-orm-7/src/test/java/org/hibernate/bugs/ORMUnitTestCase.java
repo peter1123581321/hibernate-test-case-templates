@@ -86,7 +86,7 @@ class ORMUnitTestCase {
             MyPerson second = new MyPerson("name");
             second.myJson = new MyJson();
             session.persist(second);
-            
+
             // Hibernate: insert into MyPerson (my_json,name,version,id) values (?,?,?,?)
             // Hibernate: insert into MyPerson (my_json,name,version,id) values (?,?,?,?)
             // Hibernate: update MyPerson set my_json=?,name=?,version=? where id=? and version=?
@@ -149,5 +149,10 @@ class ORMUnitTestCase {
 
     public static class MyJson {
 
+        String text = "fubar";
+
+        public boolean equals(Object other) {
+            return other instanceof MyJson myJson && text.equals(myJson.text);
+        }
     }
 }
