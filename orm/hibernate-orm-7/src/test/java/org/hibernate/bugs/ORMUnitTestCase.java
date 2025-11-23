@@ -22,6 +22,8 @@ import org.hibernate.testing.orm.junit.*;
 import org.hibernate.type.SqlTypes;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 
 @DomainModel(
         annotatedClasses = {
@@ -121,6 +123,58 @@ class ORMUnitTestCase {
 
             // note: no updates needed
         });
+    }
+
+    @Test
+    void saveThreePersons_batchProcessing(SessionFactoryScope scope) {
+        scope.inTransaction(session -> {
+
+            MyPerson first = new MyPerson("name");
+            first.myJson = new MyJson();
+            session.persist(first);
+
+            MyPerson second = new MyPerson("name");
+            second.myJson = new MyJson();
+            session.persist(second);
+
+            MyPerson third = new MyPerson("name");
+            third.myJson = new MyJson();
+            session.persist(third);
+
+            List<MyPerson> persons = session.createQuery("select p from MyPerson p", MyPerson.class).getResultList();
+
+            for (MyPerson person : persons) {
+
+                session.createQuery("select p from MyPerson p where p.id=:id", MyPerson.class).setParameter("id", person.id).getSingleResult();
+
+            }
+
+            //  Hibernate: insert into MyPerson (my_json,name,version,id) values (?,?,?,?)
+            //  Hibernate: insert into MyPerson (my_json,name,version,id) values (?,?,?,?)
+            //  Hibernate: insert into MyPerson (my_json,name,version,id) values (?,?,?,?)
+            //  Hibernate: update MyPerson set my_json=?,name=?,version=? where id=? and version=?
+            //  Hibernate: update MyPerson set my_json=?,name=?,version=? where id=? and version=?
+            //  Hibernate: update MyPerson set my_json=?,name=?,version=? where id=? and version=?
+            //  Hibernate: select mp1_0.id,mp1_0.my_json,mp1_0.name,mp1_0.version from MyPerson mp1_0
+            //  Hibernate: update MyPerson set my_json=?,name=?,version=? where id=? and version=?
+            //  Hibernate: update MyPerson set my_json=?,name=?,version=? where id=? and version=?
+            //  Hibernate: update MyPerson set my_json=?,name=?,version=? where id=? and version=?
+            //  Hibernate: select mp1_0.id,mp1_0.my_json,mp1_0.name,mp1_0.version from MyPerson mp1_0 where mp1_0.id=?
+            //  Hibernate: update MyPerson set my_json=?,name=?,version=? where id=? and version=?
+            //  Hibernate: update MyPerson set my_json=?,name=?,version=? where id=? and version=?
+            //  Hibernate: update MyPerson set my_json=?,name=?,version=? where id=? and version=?
+            //  Hibernate: select mp1_0.id,mp1_0.my_json,mp1_0.name,mp1_0.version from MyPerson mp1_0 where mp1_0.id=?
+            //  Hibernate: update MyPerson set my_json=?,name=?,version=? where id=? and version=?
+            //  Hibernate: update MyPerson set my_json=?,name=?,version=? where id=? and version=?
+            //  Hibernate: update MyPerson set my_json=?,name=?,version=? where id=? and version=?
+            //  Hibernate: select mp1_0.id,mp1_0.my_json,mp1_0.name,mp1_0.version from MyPerson mp1_0 where mp1_0.id=?
+            //  Hibernate: update MyPerson set my_json=?,name=?,version=? where id=? and version=?
+            //  Hibernate: update MyPerson set my_json=?,name=?,version=? where id=? and version=?
+            //  Hibernate: update MyPerson set my_json=?,name=?,version=? where id=? and version=?
+
+            // note: no updates needed
+        });
+
     }
 
     @Entity(name = "MyPerson")
