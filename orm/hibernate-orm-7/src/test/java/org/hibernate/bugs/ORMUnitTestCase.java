@@ -151,8 +151,8 @@ class ORMUnitTestCase {
 
         String text = "fubar";
 
-        public boolean equals(Object other) {
-            return other instanceof MyJson myJson && text.equals(myJson.text);
-        }
+//        public boolean equals(Object other) {
+//            return other instanceof MyJson myJson && text.equals(myJson.text);
+//        }
     }
 }
