@@ -29,14 +29,19 @@ import org.hibernate.type.descriptor.java.LocalDateJavaType;
 import org.hibernate.type.descriptor.jdbc.DateJdbcType;
 import org.hibernate.type.descriptor.jdbc.JdbcType;
 import org.hibernate.type.descriptor.jdbc.JdbcTypeIndicators;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.LocalDate;
+import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @DomainModel(
         annotatedClasses = {
-                HHH18898Test.MyEntity.class
+                HHH18898Test.EntityEmbedCustom.class,
+                HHH18898Test.EntityEmbedNative.class
         }
 )
 @ServiceRegistry(
@@ -46,60 +51,119 @@ import java.time.LocalDate;
         }
 )
 @SessionFactory
-class HHH18898Test {
+class HHH18898Test implements SessionFactoryScopeAware {
 
-    // Correct HQL, works, raw value (param right)
-    @Test
-    void hhh18898Test_1(SessionFactoryScope scope) {
-        run(scope, "select z from MyEntity z where datum.value=:datum");
+    private SessionFactoryScope scope;
+
+    @Override
+    public void injectSessionFactoryScope(SessionFactoryScope scope) {
+        this.scope = scope;
     }
 
-    // Correct HQL, works, raw value (param left)
-    @Test
-    void hhh18898Test_2(SessionFactoryScope scope) {
-        run(scope, "select z from MyEntity z where :datum=datum.value");
-    }
+    // uses an embeddable with a custom java type
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "select z from EntityEmbedCustom z where embedCustom.value=:datum",
+            "select z from EntityEmbedCustom z where :datum=embedCustom.value",
+            "select z from EntityEmbedCustom z where embedCustom=:datum", // this query failed with the bug
+            "select z from EntityEmbedCustom z where :datum=embedCustom",
+            "select z from EntityEmbedCustom z where embedCustom.value in (:datum)",
+            "select z from EntityEmbedCustom z where embedCustom in (:datum)" // failed as well
+    })
+    void hhh18898Test_embedCustom(String hql) {
 
-    // Correct HQL, works, embeddable value (param right)
-    @Test
-    void hhh18898Test_3(SessionFactoryScope scope) {
-        run(scope, "select z from MyEntity z where datum=:datum");
-    }
-
-    // Correct HQL, works, embeddable value (param left)
-    @Test
-    void hhh18898Test_4(SessionFactoryScope scope) {
-        run(scope, "select z from MyEntity z where :datum=datum");
-    }
-
-    private void run(SessionFactoryScope scope, String hql) {
-
+        // prepare
         scope.inTransaction(session -> {
-            QueryImplementor<MyEntity> query = session.createQuery(hql, MyEntity.class);
+            EntityEmbedCustom e = new EntityEmbedCustom();
+            e.id = 1;
+            EmbedCustom datum = new EmbedCustom();
+            datum.value = new MyDate(LocalDate.now());
+            e.embedCustom = datum;
+            session.persist(e);
+        });
+
+        // assert
+        scope.inTransaction(session -> {
+            QueryImplementor<EntityEmbedCustom> query = session.createQuery(hql, EntityEmbedCustom.class);
             query.setParameter("datum", new MyDate(LocalDate.now()), MyDateJavaType.TYPE);
-            query.getResultList();
+            List<EntityEmbedCustom> resultList = query.getResultList();
+            assertFalse(resultList.isEmpty());
+            assertEquals(LocalDate.now(), resultList.get(0).embedCustom.value.wrapped);
+            session.remove(resultList.get(0));
+        });
+    }
+
+    // uses an embeddable with a native java type
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "select z from EntityEmbedNative z where embedNative.value=:datum",
+            "select z from EntityEmbedNative z where :datum=embedNative.value",
+            "select z from EntityEmbedNative z where embedNative=:datum", // this query failed with the bug
+            "select z from EntityEmbedNative z where :datum=embedNative",
+            "select z from EntityEmbedNative z where embedNative.value in (:datum)",
+            "select z from EntityEmbedNative z where embedNative in (:datum)" // failed as well
+    })
+    void hhh18898Test_embedSingle(String hql) {
+
+        // prepare
+        scope.inTransaction(session -> {
+            EntityEmbedNative e = new EntityEmbedNative();
+            e.id = 1;
+            EmbedNative datum = new EmbedNative();
+            datum.value = LocalDate.now();
+            e.embedNative = datum;
+            session.persist(e);
+        });
+
+        // assert
+        scope.inTransaction(session -> {
+            QueryImplementor<EntityEmbedNative> query = session.createQuery(hql, EntityEmbedNative.class);
+            query.setParameter("datum", LocalDate.now(), LocalDateJavaType.INSTANCE.getJavaType());
+            List<EntityEmbedNative> resultList = query.getResultList();
+            assertFalse(resultList.isEmpty());
+            assertEquals(LocalDate.now(), resultList.get(0).embedNative.value);
+            session.remove(resultList.get(0));
         });
     }
 
     @Embeddable
-    public static class EmbeddableDatum {
+    public static class EmbedCustom {
 
+        @Column(name = "DATUM")
         @JavaType(MyDateJavaType.class)
-        LocalDate value;
+        MyDate value;
+
     }
 
-    @Entity(name = "MyEntity")
-    public static class MyEntity {
+    @Entity(name = "EntityEmbedCustom")
+    public static class EntityEmbedCustom {
 
         @Id
         @Column(name = "id")
         long id;
 
         @Embedded
-        @AttributeOverride(name = "value", column = @Column(name = "DATUM"))
-        EmbeddableDatum datum;
+        EmbedCustom embedCustom;
     }
 
+    @Embeddable
+    public static class EmbedNative {
+
+        @Column(name = "DATUM")
+        @JavaType(LocalDateJavaType.class)
+        LocalDate value;
+    }
+
+    @Entity(name = "EntityEmbedNative")
+    public static class EntityEmbedNative {
+
+        @Id
+        @Column(name = "id")
+        long id;
+
+        @Embedded
+        EmbedNative embedNative;
+    }
 
     public static class MyDate {
         private final LocalDate wrapped;
@@ -114,11 +178,9 @@ class HHH18898Test {
     }
 
     public static class MyDateJavaType extends AbstractClassJavaType<MyDate> {
-        private static final long serialVersionUID = 1L;
         private static final MyDateJavaType INSTANCE = new MyDateJavaType();
         public static final BasicType<MyDate> TYPE = new AbstractSingleColumnStandardBasicType<>(DateJdbcType.INSTANCE,
                 INSTANCE) {
-            private static final long serialVersionUID = 1L;
 
             @Override
             public String getName() {
@@ -133,7 +195,7 @@ class HHH18898Test {
         @Override
         public <X> X unwrap(final MyDate value, final Class<X> type, final WrapperOptions options) {
             LocalDate dateValue = (value == null ? null : value.toLocalDate());
-            return LocalDateJavaType.INSTANCE.<X>unwrap(dateValue, type, options);
+            return LocalDateJavaType.INSTANCE.unwrap(dateValue, type, options);
         }
 
         @Override
@@ -150,5 +212,4 @@ class HHH18898Test {
             return context.getJdbcType(SqlTypes.DATE);
         }
     }
-
 }
