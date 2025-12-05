@@ -15,14 +15,19 @@
  */
 package org.hibernate.bugs;
 
+import jakarta.persistence.*;
+import org.hibernate.HibernateException;
 import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.testing.orm.junit.*;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 
 @DomainModel(
         annotatedClasses = {
-
+                ORMUnitTestCase.Author.class
         }
 )
 @ServiceRegistry(
@@ -35,10 +40,31 @@ import org.junit.jupiter.api.Test;
 class ORMUnitTestCase {
 
     @Test
-    void hhh123Test(SessionFactoryScope scope) {
+    void hhh8535Test(SessionFactoryScope scope) {
 
+        // This situation can only happen via human being or bad migration/clone script.
+        // Simulate this record being updated post table generation.
         scope.inTransaction(session -> {
-            // Do stuff...
+            session.createNativeMutationQuery(
+                    "UPDATE generator SET next_val = null where sequence_name = 'Author'"
+            ).executeUpdate();
         });
+
+        HibernateException hibernateException = assertThrows(HibernateException.class,
+                () -> scope.inTransaction(session -> {
+                    Author author = new Author();
+                    session.persist(author);
+                }));
+
+        assertEquals("next_val for sequence_name 'Author' is null", hibernateException.getMessage());
+    }
+
+    @Entity(name = "Author")
+    public static class Author {
+
+        @Id
+        @GeneratedValue(strategy = GenerationType.TABLE, generator = "generator")
+        @TableGenerator(name = "generator", table = "generator")
+        long id;
     }
 }
